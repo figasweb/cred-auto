@@ -1,0 +1,17 @@
+{
+  "name": "cred-auto-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "seed": "npx tsx src/seed.ts"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0",
+    "typescript": "~5.9.3",
+    "@cloudflare/workers-types": "^4.20250401.0",
+    "tsx": "^4.19.0"
+  }
+}
