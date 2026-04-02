@@ -1,9 +1,13 @@
 import { motion } from 'framer-motion';
 import { ExternalLink, Trophy, TrendingDown, TrendingUp } from 'lucide-react';
 import { formatarEuro, formatarPercentagem } from '../utils/calculo';
+import { useEvidence } from './EvidenceModal';
+
+const IS_DEV = import.meta.env.DEV;
 
 interface Props {
   rank: number;
+  id: string;
   nome: string;
   prestacao: number;
   tan: number;
@@ -15,13 +19,15 @@ interface Props {
   url: string;
   logo: string;
   comissaoAbertura?: string;
-  fonteUrl?: string;
+  vehicleType: string;
   isBest: boolean;
 }
 
 export default function ResultCard({
-  rank, nome, prestacao, tan, taeg, mtic, totalJuros, montante, url, logo, comissaoAbertura, fonteUrl, isBest,
+  rank, id, nome, prestacao, tan, taeg, mtic, totalJuros, montante, url, logo, comissaoAbertura, vehicleType, isBest,
 }: Props) {
+  const evidence = useEvidence();
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -41,7 +47,7 @@ export default function ResultCard({
       )}
 
       <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
-        {/* Rank + Nome */}
+        {/* Rank + Nome + Prestação (mobile: same row) */}
         <div className="flex items-center gap-3 md:min-w-[200px]">
           <div className={`relative w-11 h-11 rounded-xl flex items-center justify-center shrink-0 overflow-hidden bg-white/5
             ${isBest ? 'ring-2 ring-success/30' : 'ring-1 ring-white/10'}`}>
@@ -51,16 +57,23 @@ export default function ResultCard({
               {rank}
             </span>
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <div className="font-bold text-white text-base">{nome}</div>
             {comissaoAbertura && (
               <div className="text-[11px] text-slate-500 mt-0.5">{comissaoAbertura}</div>
             )}
           </div>
+          {/* Prestação inline on mobile */}
+          <div className="md:hidden text-right shrink-0">
+            <div className="text-[10px] text-slate-500 uppercase tracking-wider">Prestação</div>
+            <div className={`text-xl font-extrabold ${isBest ? 'text-success' : 'text-white'}`}>
+              {formatarEuro(prestacao)}
+            </div>
+          </div>
         </div>
 
-        {/* Prestação - destaque */}
-        <div className="flex-1 md:text-center">
+        {/* Prestação - desktop only (centered) */}
+        <div className="hidden md:block flex-1 text-center">
           <div className="text-[11px] text-slate-500 uppercase tracking-wider mb-0.5">Prestação mensal</div>
           <div className={`text-2xl md:text-3xl font-extrabold ${isBest ? 'text-success' : 'text-white'}`}>
             {formatarEuro(prestacao)}
@@ -69,8 +82,18 @@ export default function ResultCard({
 
         {/* Métricas */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
-          <MetricBox label="TAN" value={formatarPercentagem(tan)} />
-          <MetricBox label="TAEG" value={formatarPercentagem(taeg)} />
+          <MetricBox
+            label="TAN"
+            value={formatarPercentagem(tan)}
+            clickable={IS_DEV}
+            onClick={() => evidence?.open(id, nome, 'tan', vehicleType)}
+          />
+          <MetricBox
+            label="TAEG"
+            value={formatarPercentagem(taeg)}
+            clickable={IS_DEV}
+            onClick={() => evidence?.open(id, nome, 'taeg', vehicleType)}
+          />
           <MetricBox label="Total (MTIC)" value={formatarEuro(mtic)} />
           <MetricBox
             label="Juros"
@@ -94,29 +117,39 @@ export default function ResultCard({
             Simular
             <ExternalLink size={14} />
           </a>
-          {fonteUrl && (
-            <a
-              href={fonteUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[10px] text-slate-600 hover:text-slate-400 transition-colors no-underline"
-            >
-              Ver fonte
-            </a>
-          )}
         </div>
       </div>
     </motion.div>
   );
 }
 
-function MetricBox({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
-  return (
-    <div className="text-center md:text-left">
+function MetricBox({ label, value, icon, clickable, onClick }: {
+  label: string;
+  value: string;
+  icon?: React.ReactNode;
+  clickable?: boolean;
+  onClick?: () => void;
+}) {
+  const content = (
+    <>
       <div className="text-[10px] text-slate-500 uppercase tracking-wider flex items-center gap-1">
         {label} {icon}
       </div>
       <div className="text-sm font-semibold text-slate-300">{value}</div>
-    </div>
+    </>
   );
+
+  if (clickable) {
+    return (
+      <button
+        onClick={onClick}
+        className="text-center md:text-left cursor-pointer hover:bg-white/5 rounded-lg p-1 -m-1 transition-colors border border-dashed border-transparent hover:border-amber-500/30"
+        title="Ver evidência"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <div className="text-center md:text-left">{content}</div>;
 }

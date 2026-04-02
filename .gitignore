@@ -3,3 +3,8 @@ dist/
 .wrangler/
 *.tsbuildinfo
 .env.local
+
+# Scraper temp files
+scraper/html-dump/
+scraper/failures/html/
+scraper/failures/*.md

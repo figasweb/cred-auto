@@ -112,8 +112,9 @@ export default function ResultsList({ tipo, montante, prazo, instituicoes }: Pro
       <div className="flex flex-col gap-4">
         {resultados.map((r, i) => (
           <ResultCard
-            key={r.nome}
+            key={r.id || r.nome}
             rank={i + 1}
+            id={r.id || r.nome.toLowerCase().replace(/\s+/g, '-')}
             nome={r.nome}
             prestacao={r.prestacao}
             tan={r.tan}
@@ -125,7 +126,7 @@ export default function ResultsList({ tipo, montante, prazo, instituicoes }: Pro
             url={r.url}
             logo={r.logo}
             comissaoAbertura={r.comissaoAbertura}
-            fonteUrl={r.fonteUrl}
+            vehicleType={tipo}
             isBest={i === 0}
           />
         ))}

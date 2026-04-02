@@ -6,6 +6,7 @@ import { useInstituicoes } from './hooks/useInstituicoes';
 import Hero from './components/Hero';
 import SimuladorForm from './components/SimuladorForm';
 import ResultsList from './components/ResultsList';
+import { EvidenceProvider } from './components/EvidenceModal';
 
 function App() {
   const [tipo, setTipo] = useState<VehicleType>('novo');
@@ -14,6 +15,7 @@ function App() {
   const { data, loading, error } = useInstituicoes();
 
   return (
+    <EvidenceProvider>
     <div className="min-h-screen">
       <Hero />
       <SimuladorForm
@@ -54,6 +56,7 @@ function App() {
         <ResultsList tipo={tipo} montante={montante} prazo={prazo} instituicoes={data} />
       )}
     </div>
+    </EvidenceProvider>
   );
 }
 

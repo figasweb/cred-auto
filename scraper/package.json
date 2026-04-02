@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.52.0",
+    "pdf-parse": "^2.4.5",
     "playwright": "^1.59.1"
   },
   "devDependencies": {

@@ -1,5 +1,5 @@
 import { chromium, type Browser, type Page } from 'playwright';
-import { bankSources, validationRules, type BankSource, type PageInteraction } from './sources.js';
+import { bankSources, validationRules, type BankSource, type PageInteraction, type FieldPatterns } from './sources.js';
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const CF_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN || '';
@@ -8,6 +8,8 @@ const CF_KV_NAMESPACE_ID = process.env.CLOUDFLARE_KV_NAMESPACE_ID || '';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
 const DRY_RUN = process.argv.includes('--dry-run');
+const USE_CHROME = process.argv.includes('--use-chrome');
+const CHROME_CDP_PORT = 9222;
 const MANUAL_MODE = !ANTHROPIC_API_KEY;
 const LLM_MODEL = 'claude-haiku-4-5-20251001';
 
@@ -45,8 +47,24 @@ function logoUrl(domain: string): string {
 }
 
 function parsePortugueseNumber(raw: string): number {
-  // "5.000" → 5000, "5,50" → 5.5
-  const cleaned = raw.replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
+  let cleaned = raw.replace(/\s/g, '');
+  const hasDot = cleaned.includes('.');
+  const hasComma = cleaned.includes(',');
+  if (hasDot && hasComma) {
+    // "5.000,50" → dot is thousands, comma is decimal
+    cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+  } else if (hasComma) {
+    // "5,50" → comma is decimal
+    cleaned = cleaned.replace(',', '.');
+  } else if (hasDot) {
+    // "11.0" or "75.000" or "9.500" — check if dot is decimal or thousands
+    const parts = cleaned.split('.');
+    if (parts.length === 2 && parts[1].length === 3 && parts[0].length >= 2 && parseInt(parts[0]) >= 10) {
+      // "75.000" → thousands separator (only when integer part >= 10)
+      cleaned = cleaned.replace('.', '');
+    }
+    // else "9.500", "11.0", "8.000" → dot is decimal, keep as is
+  }
   return parseFloat(cleaned);
 }
 
@@ -58,6 +76,7 @@ function log(msg: string) {
 // ─── Browser management ───
 
 let browser: Browser | null = null;
+let chromeBrowser: Browser | null = null;
 
 async function getBrowser(): Promise<Browser> {
   if (!browser) {
@@ -66,39 +85,101 @@ async function getBrowser(): Promise<Browser> {
   return browser;
 }
 
-async function getRenderedHtml(url: string, interactions?: PageInteraction[]): Promise<string> {
-  const b = await getBrowser();
-  const page = await b.newPage();
-
-  try {
-    await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
-    // Wait a bit for any lazy-loaded content
-    await page.waitForTimeout(2000);
-
-    // Execute page interactions (click tabs, wait for elements, etc.)
-    if (interactions) {
-      for (const action of interactions) {
-        if (action.click) {
-          log(`    clicking: ${action.click}`);
-          await page.click(action.click, { timeout: 5000 }).catch(() => {
-            log(`    click failed: ${action.click}`);
-          });
-        }
-        if (action.waitFor) {
-          await page.waitForSelector(action.waitFor, { timeout: 5000 }).catch(() => {});
-        }
-        if (action.delay) {
-          await page.waitForTimeout(action.delay);
-        } else {
-          await page.waitForTimeout(1000);
-        }
-      }
+/** Connect to user's real Chrome via CDP (for anti-bot sites) */
+async function getChromeBrowser(): Promise<Browser> {
+  if (!chromeBrowser) {
+    try {
+      chromeBrowser = await chromium.connectOverCDP(`http://localhost:${CHROME_CDP_PORT}`);
+      log('Connected to Chrome via CDP on port ' + CHROME_CDP_PORT);
+    } catch (err) {
+      throw new Error(
+        `Cannot connect to Chrome on port ${CHROME_CDP_PORT}. ` +
+        `Start Chrome with: chrome.exe --remote-debugging-port=${CHROME_CDP_PORT}`
+      );
     }
-
-    return await page.content();
-  } finally {
-    await page.close();
   }
+  return chromeBrowser;
+}
+
+interface RenderedPage {
+  html: string;
+  page: Page;
+}
+
+/** Dismiss cookie banners, GDPR popups, and other overlays */
+async function dismissOverlays(page: Page) {
+  // Common cookie/consent selectors across Portuguese bank sites
+  const selectors = [
+    '#onetrust-accept-btn-handler',
+    '#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll',
+    'button[id*="accept"]',
+    'button[id*="cookie"]',
+    'button[class*="accept"]',
+    'a[id*="accept"]',
+    '.cookie-accept',
+    '.accept-cookies',
+    '[data-testid="cookie-accept"]',
+    'button:has-text("Aceitar")',
+    'button:has-text("Aceitar todos")',
+    'button:has-text("Aceitar todos os cookies")',
+    'button:has-text("Accept")',
+    'button:has-text("Accept all")',
+    'button:has-text("Permitir todos")',
+  ];
+
+  for (const sel of selectors) {
+    try {
+      const btn = page.locator(sel).first();
+      if (await btn.isVisible({ timeout: 500 })) {
+        await btn.click({ timeout: 2000 });
+        await page.waitForTimeout(500);
+        return;
+      }
+    } catch { /* try next */ }
+  }
+
+  // Fallback: remove overlay elements via JS
+  await page.evaluate(() => {
+    document.querySelectorAll('[id*="onetrust"], [id*="cookie"], [class*="cookie-banner"], [class*="consent"], [id*="consent"]')
+      .forEach(el => el.remove());
+    // Remove any fixed/sticky overlays blocking content
+    document.querySelectorAll('div').forEach(el => {
+      const s = getComputedStyle(el);
+      if ((s.position === 'fixed' || s.position === 'sticky') && s.zIndex && parseInt(s.zIndex) > 999 && el.offsetHeight < 400) {
+        el.remove();
+      }
+    });
+  }).catch(() => {});
+}
+
+async function getRenderedPage(url: string, interactions?: PageInteraction[], useChrome?: boolean): Promise<RenderedPage> {
+  const b = useChrome ? await getChromeBrowser() : await getBrowser();
+  const ctx = useChrome ? b.contexts()[0] || await b.newContext() : await b.newContext();
+  const page = await ctx.newPage();
+
+  await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
+  await page.waitForTimeout(2000);
+
+  // Dismiss cookie/GDPR overlays before interactions and screenshots
+  await dismissOverlays(page);
+
+  if (interactions) {
+    for (const action of interactions) {
+      if (action.click) {
+        log(`    clicking: ${action.click}`);
+        await page.click(action.click, { timeout: 5000 }).catch(() => {
+          log(`    click failed: ${action.click}`);
+        });
+      }
+      if (action.waitFor) {
+        await page.waitForSelector(action.waitFor, { timeout: 5000 }).catch(() => {});
+      }
+      await page.waitForTimeout(action.delay ?? 1000);
+    }
+  }
+
+  const html = await page.content();
+  return { html, page };
 }
 
 async function closeBrowser() {
@@ -106,13 +187,34 @@ async function closeBrowser() {
     await browser.close();
     browser = null;
   }
+  if (chromeBrowser) {
+    await chromeBrowser.close();
+    chromeBrowser = null;
+  }
+}
+
+// ─── Helpers ───
+
+/** Merge default patterns with per-type overrides */
+function resolvePatterns(bank: BankSource, vehicleType: VehicleType): FieldPatterns {
+  const base = { ...bank.patterns };
+  const overrides = bank.patternsPerType?.[vehicleType];
+  if (overrides) {
+    if (overrides.tan) base.tan = overrides.tan;
+    if (overrides.taeg) base.taeg = overrides.taeg;
+    if (overrides.minMontante) base.minMontante = overrides.minMontante;
+    if (overrides.maxMontante) base.maxMontante = overrides.maxMontante;
+    if (overrides.minPrazo) base.minPrazo = overrides.minPrazo;
+    if (overrides.maxPrazo) base.maxPrazo = overrides.maxPrazo;
+  }
+  return base;
 }
 
 // ─── Regex extraction ───
 
 function extractWithRegex(
   html: string,
-  patterns: BankSource['patterns'],
+  patterns: FieldPatterns,
 ): { data: Record<string, number | null>; missing: string[] } {
   const data: Record<string, number | null> = {};
   const missing: string[] = [];
@@ -121,7 +223,9 @@ function extractWithRegex(
     if (!regex) { missing.push(field); continue; }
     const match = html.match(regex);
     if (match?.[1]) {
-      data[field] = parsePortugueseNumber(match[1]);
+      const val = parsePortugueseNumber(match[1]);
+      // Round percentages to 2 decimal places (some hidden inputs have extra precision)
+      data[field] = (field === 'tan' || field === 'taeg') ? Math.round(val * 100) / 100 : val;
     } else {
       missing.push(field);
       data[field] = null;
@@ -300,19 +404,157 @@ async function scrapeBank(
     return { bankId: bank.id, bankName: bank.nome, vehicleType, success: false, errors: ['No URL for this type'], usedLlm: false };
   }
 
+  // Skip anti-bot banks unless --use-chrome is active
+  if (bank.requiresChrome && !USE_CHROME) {
+    return { bankId: bank.id, bankName: bank.nome, vehicleType, success: false, errors: ['Requires --use-chrome (anti-bot site)'], usedLlm: false };
+  }
+
   // 1. Fetch rendered HTML via Playwright
   let html: string;
+  let page: Page | null = null;
   try {
     const interactions = bank.interactions?.[vehicleType];
-    log(`  Opening ${url} in browser...${interactions ? ` (${interactions.length} interactions)` : ''}`);
-    html = await getRenderedHtml(url, interactions);
+    const useChrome = bank.requiresChrome && USE_CHROME;
+    log(`  Opening ${url}${useChrome ? ' (Chrome CDP)' : ''}...${interactions ? ` (${interactions.length} interactions)` : ''}`);
+    const rendered = await getRenderedPage(url, interactions, useChrome);
+    html = rendered.html;
+    page = rendered.page;
     log(`  Got ${html.length} chars of rendered HTML`);
   } catch (err) {
+    if (page) await page.close().catch(() => {});
     return { bankId: bank.id, bankName: bank.nome, vehicleType, success: false, errors: [`Browser fetch failed: ${err}`], usedLlm: false };
   }
 
-  // 2. Regex extraction
-  const { data: regexData, missing } = extractWithRegex(html, bank.patterns);
+  // 2. Regex extraction (with per-type pattern overrides)
+  const patterns = resolvePatterns(bank, vehicleType);
+  const { data: regexData, missing } = extractWithRegex(html, patterns);
+
+  // 3. Screenshot evidence — one per field per vehicle type
+  const fs = await import('fs');
+  const pathMod = await import('path');
+  const evidDir = pathMod.join(import.meta.dirname, '..', 'evidences');
+  fs.mkdirSync(evidDir, { recursive: true });
+
+  // Remove overlays once before all screenshots
+  await page.evaluate(() => {
+    document.querySelectorAll('[id*="onetrust"], [id*="cookie"], [class*="consent"], [id*="consent"]').forEach(el => el.remove());
+    document.querySelectorAll('div').forEach(el => {
+      const s = getComputedStyle(el);
+      if ((s.position === 'fixed' || s.position === 'sticky') && parseInt(s.zIndex || '0') > 100) el.remove();
+    });
+  }).catch(() => {});
+
+  for (const field of ['tan', 'taeg'] as const) {
+    const ssPath = pathMod.join(evidDir, `${bank.id}_${field}_${vehicleType}.png`);
+    if (fs.existsSync(ssPath)) continue;
+
+    const extractedValue = regexData[field];
+    if (extractedValue == null) continue;
+
+    try {
+      // Format the value in multiple ways it might appear on the page
+      const val = extractedValue;
+      const valComma = String(val).replace('.', ',');
+      const searches = [
+        `${valComma}%`,                                      // "8,1%"
+        `${val}%`,                                           // "8.1%"
+        `${val.toFixed(3).replace('.', ',')}%`,              // "8,100%"
+        `${val.toFixed(2).replace('.', ',')}%`,              // "8,10%"
+        `${val.toFixed(3)}%`,                                // "8.100%"
+        `${val.toFixed(2)}%`,                                // "8.10%"
+        `${valComma} %`,                                     // "8,1 %"
+        `${val} %`,                                          // "8.1 %"
+        // Without % (for cases where % is in <sup> tag)
+        `${valComma}`,                                       // "8,1"
+        `${val.toFixed(3).replace('.', ',')}`,               // "8,100"
+        `${val.toFixed(2).replace('.', ',')}`,               // "8,10"
+      ];
+
+      let highlighted = false;
+
+      for (const search of searches) {
+        if (highlighted) break;
+
+        const loc = page.getByText(search, { exact: false }).first();
+        try {
+          // Try visible first
+          if (await loc.isVisible({ timeout: 300 })) {
+            await loc.evaluate((el) => {
+              el.style.outline = '4px solid #ff0000';
+              el.style.outlineOffset = '2px';
+              el.style.backgroundColor = '#ffe600';
+            });
+            await loc.scrollIntoViewIfNeeded();
+            await page.waitForTimeout(200);
+            highlighted = true;
+          }
+        } catch {
+          // Element exists but not "visible" (tiny font, overflow hidden, etc.)
+          // Force show it anyway
+          try {
+            const count = await loc.count();
+            if (count > 0) {
+              await loc.evaluate((el) => {
+                el.style.outline = '4px solid #ff0000';
+                el.style.outlineOffset = '2px';
+                el.style.backgroundColor = '#ffe600';
+                el.style.fontSize = '14px';
+                el.style.display = 'block';
+                el.scrollIntoView({ block: 'center' });
+              });
+              await page.waitForTimeout(200);
+              highlighted = true;
+            }
+          } catch { /* try next format */ }
+        }
+      }
+
+      // Last resort: if no highlight via locator, try JS innerHTML search
+      if (!highlighted) {
+        try {
+          highlighted = await page.evaluate((searchTerms) => {
+            for (const term of searchTerms) {
+              const els = Array.from(document.querySelectorAll('p, span, div, td, li, strong, b'));
+              const el = els.find(e => e.textContent?.includes(term) && e.children.length < 3);
+              if (el) {
+                (el as HTMLElement).style.outline = '4px solid #ff0000';
+                (el as HTMLElement).style.outlineOffset = '2px';
+                (el as HTMLElement).style.backgroundColor = '#ffe600';
+                el.scrollIntoView({ block: 'center' });
+                return true;
+              }
+            }
+            return false;
+          }, searches.slice(0, 6));
+        } catch {}
+      }
+
+      await page.waitForTimeout(300);
+      await page.screenshot({ path: ssPath, fullPage: false });
+
+      // Remove highlight for next screenshot
+      if (highlighted) {
+        await page.evaluate(() => {
+          document.querySelectorAll('*').forEach(el => {
+            if ((el as HTMLElement).style?.outline?.includes('#ff0000')) {
+              (el as HTMLElement).style.outline = '';
+              (el as HTMLElement).style.outlineOffset = '';
+              (el as HTMLElement).style.backgroundColor = '';
+            }
+          });
+        }).catch(() => {});
+      }
+
+      log(`  Evidence: ${bank.id}_${field}_${vehicleType}.png${highlighted ? '' : ' (no highlight found)'}`);
+    } catch (err: any) {
+      try {
+        await page.screenshot({ path: ssPath, fullPage: false });
+        log(`  Evidence (fallback): ${bank.id}_${field}_${vehicleType}.png`);
+      } catch { /* give up */ }
+    }
+  }
+
+  await page.close().catch(() => {});
 
   // Build entry with static fallbacks applied
   const entry = buildEntry(bank, vehicleType, regexData, url);
@@ -387,7 +629,7 @@ function buildEntry(
   data: Record<string, number | null>,
   url: string,
 ): Partial<BankEntry> {
-  // Static fields as base, then regex data overrides (only non-null values)
+  // Scraped values (only non-null)
   const scraped: Partial<BankEntry> = {};
   if (data.tan != null) scraped.tan = data.tan;
   if (data.taeg != null) scraped.taeg = data.taeg;
@@ -396,14 +638,17 @@ function buildEntry(
   if (data.minPrazo != null) scraped.minPrazo = data.minPrazo;
   if (data.maxPrazo != null) scraped.maxPrazo = data.maxPrazo;
 
+  // Merge: base static → per-type static → scraped (highest priority)
+  const perTypeStatic = bank.staticFieldsPerType?.[vehicleType] as Partial<BankEntry> | undefined;
+
   return {
     id: bank.id,
     nome: bank.nome,
     url,
     logo: logoUrl(bank.domain),
     fonteUrl: url,
-    // Static fields as base, scraped values override
     ...(bank.staticFields as Partial<BankEntry>),
+    ...(perTypeStatic || {}),
     ...scraped,
   };
 }
