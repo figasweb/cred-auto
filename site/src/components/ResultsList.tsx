@@ -125,6 +125,7 @@ export default function ResultsList({ tipo, montante, prazo, instituicoes }: Pro
             url={r.url}
             logo={r.logo}
             comissaoAbertura={r.comissaoAbertura}
+            fonteUrl={r.fonteUrl}
             isBest={i === 0}
           />
         ))}

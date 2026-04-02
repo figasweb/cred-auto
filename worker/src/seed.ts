@@ -76,4 +76,11 @@ const data = {
   ],
 };
 
+// Add fonteUrl (= url) to every entry for traceability
+for (const entries of Object.values(data)) {
+  for (const entry of entries) {
+    (entry as Record<string, unknown>).fonteUrl = entry.url;
+  }
+}
+
 console.log(JSON.stringify(data, null, 2));

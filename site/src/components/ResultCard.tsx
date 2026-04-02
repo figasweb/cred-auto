@@ -15,11 +15,12 @@ interface Props {
   url: string;
   logo: string;
   comissaoAbertura?: string;
+  fonteUrl?: string;
   isBest: boolean;
 }
 
 export default function ResultCard({
-  rank, nome, prestacao, tan, taeg, mtic, totalJuros, montante, url, logo, comissaoAbertura, isBest,
+  rank, nome, prestacao, tan, taeg, mtic, totalJuros, montante, url, logo, comissaoAbertura, fonteUrl, isBest,
 }: Props) {
   return (
     <motion.div
@@ -78,20 +79,32 @@ export default function ResultCard({
           />
         </div>
 
-        {/* Link */}
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-300 no-underline
-            ${isBest
-              ? 'bg-success text-surface hover:bg-success/90 shadow-lg shadow-success/20'
-              : 'bg-white/5 text-slate-300 hover:bg-primary hover:text-white hover:shadow-lg hover:shadow-primary/20'
-            }`}
-        >
-          Simular
-          <ExternalLink size={14} />
-        </a>
+        {/* Links */}
+        <div className="shrink-0 flex flex-col items-center gap-1.5">
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-300 no-underline
+              ${isBest
+                ? 'bg-success text-surface hover:bg-success/90 shadow-lg shadow-success/20'
+                : 'bg-white/5 text-slate-300 hover:bg-primary hover:text-white hover:shadow-lg hover:shadow-primary/20'
+              }`}
+          >
+            Simular
+            <ExternalLink size={14} />
+          </a>
+          {fonteUrl && (
+            <a
+              href={fonteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] text-slate-600 hover:text-slate-400 transition-colors no-underline"
+            >
+              Ver fonte
+            </a>
+          )}
+        </div>
       </div>
     </motion.div>
   );

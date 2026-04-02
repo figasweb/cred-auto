@@ -12,4 +12,6 @@ export interface Instituicao {
   url: string;
   logo: string;
   comissaoAbertura?: string;
+  /** URL de onde os dados foram extraídos (para verificação) */
+  fonteUrl?: string;
 }

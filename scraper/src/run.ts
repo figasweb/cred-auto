@@ -25,6 +25,7 @@ interface BankEntry {
   url: string;
   logo: string;
   comissaoAbertura?: string;
+  fonteUrl?: string;
 }
 
 interface ScrapeResult {
@@ -282,6 +283,7 @@ function buildEntry(
     maxPrazo: data.maxPrazo ?? undefined,
     url,
     logo: logoUrl(bank.domain),
+    fonteUrl: url,
     ...(bank.staticFields as Partial<BankEntry>),
   };
 }
