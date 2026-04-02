@@ -1,0 +1,441 @@
+{
+  "novo": [
+    {
+      "id": "montepio",
+      "nome": "Montepio",
+      "url": "https://www.montepiocredito.pt/bm/simulador-embed",
+      "logo": "https://www.google.com/s2/favicons?domain=bancomontepio.pt&sz=64",
+      "fonteUrl": "https://www.montepiocredito.pt/bm/simulador-embed",
+      "comissaoAbertura": "Seguro vida incluído",
+      "minMontante": 5000,
+      "maxMontante": 75000,
+      "minPrazo": 48,
+      "maxPrazo": 120,
+      "tan": 7,
+      "taeg": 10.5
+    },
+    {
+      "id": "cgd",
+      "nome": "CGD",
+      "url": "https://www.cgd.pt/Particulares/Credito/Automovel/Pages/Credito-Automovel-Reserva-Propriedade.aspx",
+      "logo": "https://www.google.com/s2/favicons?domain=cgd.pt&sz=64",
+      "fonteUrl": "https://www.cgd.pt/Particulares/Credito/Automovel/Pages/Credito-Automovel-Reserva-Propriedade.aspx",
+      "comissaoAbertura": "Com reserva propriedade",
+      "tan": 0.25,
+      "taeg": 7.9
+    },
+    {
+      "id": "cgd-auto-expresso",
+      "nome": "CGD Auto Expresso",
+      "url": "https://www.cgd.pt/Particulares/Credito/Automovel/Pages/Credito-Auto-Expresso.aspx",
+      "logo": "https://www.google.com/s2/favicons?domain=cgd.pt&sz=64",
+      "fonteUrl": "https://www.cgd.pt/Particulares/Credito/Automovel/Pages/Credito-Auto-Expresso.aspx",
+      "comissaoAbertura": "Sem reserva propriedade",
+      "tan": 0.25,
+      "taeg": 9.8
+    },
+    {
+      "id": "321credito",
+      "nome": "321 Crédito",
+      "url": "https://www.321credito.pt/credito-automovel",
+      "logo": "https://www.google.com/s2/favicons?domain=321credito.pt&sz=64",
+      "fonteUrl": "https://www.321credito.pt/credito-automovel",
+      "comissaoAbertura": "Comissão única",
+      "tan": 6.65,
+      "taeg": 8.5
+    },
+    {
+      "id": "cetelem",
+      "nome": "Cetelem",
+      "url": "https://www.cetelem.pt/creditos/credito-automovel-outros-veiculos",
+      "logo": "https://www.google.com/s2/favicons?domain=cetelem.pt&sz=64",
+      "fonteUrl": "https://www.cetelem.pt/creditos/credito-automovel-outros-veiculos",
+      "comissaoAbertura": "Sem comissão",
+      "tan": 9.6,
+      "taeg": 14.2
+    },
+    {
+      "id": "banco-ctt",
+      "nome": "Banco CTT",
+      "url": "https://www.bancoctt.pt/o-seu-credito/credito-automovel",
+      "logo": "https://www.google.com/s2/favicons?domain=bancoctt.pt&sz=64",
+      "fonteUrl": "https://www.bancoctt.pt/o-seu-credito/credito-automovel",
+      "comissaoAbertura": "Sem comissão",
+      "tan": 7.25,
+      "taeg": 9.1
+    },
+    {
+      "id": "santander",
+      "nome": "Santander",
+      "url": "https://www.santander.pt/credito-automovel",
+      "logo": "https://www.google.com/s2/favicons?domain=santander.pt&sz=64",
+      "fonteUrl": "https://www.santander.pt/credito-automovel",
+      "tan": 6.5,
+      "taeg": 11.5
+    },
+    {
+      "id": "ca-autobank",
+      "nome": "CA Auto Bank",
+      "url": "https://www.ca-autobank.pt/financiamento-veiculos/automoveis/",
+      "logo": "https://www.google.com/s2/favicons?domain=ca-autobank.pt&sz=64",
+      "fonteUrl": "https://www.ca-autobank.pt/financiamento-veiculos/automoveis/",
+      "tan": 7.5,
+      "taeg": 8.7
+    },
+    {
+      "id": "novobanco",
+      "nome": "Novo Banco",
+      "url": "https://www.novobanco.pt/particulares/credito/credito-automovel",
+      "logo": "https://www.google.com/s2/favicons?domain=novobanco.pt&sz=64",
+      "fonteUrl": "https://www.novobanco.pt/particulares/credito/credito-automovel",
+      "tan": 5.65,
+      "taeg": 9.4
+    },
+    {
+      "id": "activobank",
+      "nome": "ActivoBank",
+      "url": "https://www.activobank.pt/credito-automovel",
+      "logo": "https://www.google.com/s2/favicons?domain=activobank.pt&sz=64",
+      "fonteUrl": "https://www.activobank.pt/credito-automovel",
+      "comissaoAbertura": "2.5% (máx. 500€)",
+      "tan": 10.4,
+      "taeg": 10.4
+    },
+    {
+      "id": "cofidis",
+      "nome": "Cofidis",
+      "url": "https://www.cofidis.pt/produtos/credito-automovel",
+      "logo": "https://www.google.com/s2/favicons?domain=cofidis.pt&sz=64",
+      "fonteUrl": "https://www.cofidis.pt/produtos/credito-automovel",
+      "comissaoAbertura": "Sem comissão",
+      "tan": 7.95,
+      "taeg": 10.5,
+      "minMontante": 5000,
+      "maxMontante": 50000,
+      "minPrazo": 24,
+      "maxPrazo": 96
+    },
+    {
+      "id": "credito-agricola",
+      "nome": "Crédito Agrícola",
+      "url": "https://www.creditoagricola.pt/para-mim/financiar/credito-automovel",
+      "logo": "https://www.google.com/s2/favicons?domain=creditoagricola.pt&sz=64",
+      "fonteUrl": "https://www.creditoagricola.pt/para-mim/financiar/credito-automovel",
+      "minMontante": 3000,
+      "maxMontante": 75000,
+      "minPrazo": 36,
+      "maxPrazo": 96,
+      "tan": 8.05,
+      "taeg": 9.3
+    },
+    {
+      "id": "younited",
+      "nome": "Younited Credit",
+      "url": "https://pt.younited-credit.com/projetos/credito-automovel",
+      "logo": "https://www.google.com/s2/favicons?domain=younited-credit.com&sz=64",
+      "fonteUrl": "https://pt.younited-credit.com/projetos/credito-automovel",
+      "comissaoAbertura": "Sem comissão",
+      "tan": 8.8,
+      "taeg": 8.8,
+      "maxPrazo": 48
+    },
+    {
+      "id": "abanca",
+      "nome": "Abanca",
+      "url": "https://www.abanca.pt/pt/credito/credito-auto/",
+      "logo": "https://www.google.com/s2/favicons?domain=abanca.pt&sz=64",
+      "fonteUrl": "https://www.abanca.pt/pt/credito/credito-auto/",
+      "tan": 12.9,
+      "taeg": 9.8
+    },
+    {
+      "id": "banco-primus",
+      "nome": "Banco Primus",
+      "url": "https://www.bancoprimus.pt/produtos/financiamento-auto/credito-auto/",
+      "logo": "https://www.google.com/s2/favicons?domain=bancoprimus.pt&sz=64",
+      "fonteUrl": "https://www.bancoprimus.pt/produtos/financiamento-auto/credito-auto/",
+      "comissaoAbertura": "Via concessionário",
+      "tan": 11.4,
+      "taeg": 14.2
+    }
+  ],
+  "usado": [
+    {
+      "id": "montepio",
+      "nome": "Montepio",
+      "url": "https://www.montepiocredito.pt/bm/simulador-embed",
+      "logo": "https://www.google.com/s2/favicons?domain=bancomontepio.pt&sz=64",
+      "fonteUrl": "https://www.montepiocredito.pt/bm/simulador-embed",
+      "comissaoAbertura": "Seguro vida incluído",
+      "minMontante": 5000,
+      "maxMontante": 75000,
+      "minPrazo": 48,
+      "maxPrazo": 120,
+      "tan": 7,
+      "taeg": 10.5
+    },
+    {
+      "id": "cgd",
+      "nome": "CGD",
+      "url": "https://www.cgd.pt/Particulares/Credito/Automovel/Pages/Credito-Automovel-Reserva-Propriedade.aspx",
+      "logo": "https://www.google.com/s2/favicons?domain=cgd.pt&sz=64",
+      "fonteUrl": "https://www.cgd.pt/Particulares/Credito/Automovel/Pages/Credito-Automovel-Reserva-Propriedade.aspx",
+      "comissaoAbertura": "Com reserva propriedade",
+      "tan": 0.25,
+      "taeg": 7.9
+    },
+    {
+      "id": "cgd-auto-expresso",
+      "nome": "CGD Auto Expresso",
+      "url": "https://www.cgd.pt/Particulares/Credito/Automovel/Pages/Credito-Auto-Expresso.aspx",
+      "logo": "https://www.google.com/s2/favicons?domain=cgd.pt&sz=64",
+      "fonteUrl": "https://www.cgd.pt/Particulares/Credito/Automovel/Pages/Credito-Auto-Expresso.aspx",
+      "comissaoAbertura": "Sem reserva propriedade",
+      "tan": 0.25,
+      "taeg": 9.8
+    },
+    {
+      "id": "321credito",
+      "nome": "321 Crédito",
+      "url": "https://www.321credito.pt/credito-automovel",
+      "logo": "https://www.google.com/s2/favicons?domain=321credito.pt&sz=64",
+      "fonteUrl": "https://www.321credito.pt/credito-automovel",
+      "comissaoAbertura": "Comissão única",
+      "tan": 6.65,
+      "taeg": 8.5
+    },
+    {
+      "id": "cetelem",
+      "nome": "Cetelem",
+      "url": "https://www.cetelem.pt/creditos/credito-automovel-outros-veiculos",
+      "logo": "https://www.google.com/s2/favicons?domain=cetelem.pt&sz=64",
+      "fonteUrl": "https://www.cetelem.pt/creditos/credito-automovel-outros-veiculos",
+      "comissaoAbertura": "Sem comissão",
+      "tan": 9.6,
+      "taeg": 14.2
+    },
+    {
+      "id": "banco-ctt",
+      "nome": "Banco CTT",
+      "url": "https://www.bancoctt.pt/o-seu-credito/credito-automovel",
+      "logo": "https://www.google.com/s2/favicons?domain=bancoctt.pt&sz=64",
+      "fonteUrl": "https://www.bancoctt.pt/o-seu-credito/credito-automovel",
+      "comissaoAbertura": "Sem comissão",
+      "tan": 7.25,
+      "taeg": 9.1
+    },
+    {
+      "id": "santander",
+      "nome": "Santander",
+      "url": "https://www.santander.pt/credito-automovel",
+      "logo": "https://www.google.com/s2/favicons?domain=santander.pt&sz=64",
+      "fonteUrl": "https://www.santander.pt/credito-automovel",
+      "tan": 6.5,
+      "taeg": 11.5
+    },
+    {
+      "id": "novobanco",
+      "nome": "Novo Banco",
+      "url": "https://www.novobanco.pt/particulares/credito/credito-automovel",
+      "logo": "https://www.google.com/s2/favicons?domain=novobanco.pt&sz=64",
+      "fonteUrl": "https://www.novobanco.pt/particulares/credito/credito-automovel",
+      "tan": 5.65,
+      "taeg": 9.4
+    },
+    {
+      "id": "activobank",
+      "nome": "ActivoBank",
+      "url": "https://www.activobank.pt/credito-automovel",
+      "logo": "https://www.google.com/s2/favicons?domain=activobank.pt&sz=64",
+      "fonteUrl": "https://www.activobank.pt/credito-automovel",
+      "comissaoAbertura": "2.5% (máx. 500€)",
+      "tan": 10.4,
+      "taeg": 10.4
+    },
+    {
+      "id": "cofidis",
+      "nome": "Cofidis",
+      "url": "https://www.cofidis.pt/produtos/credito-automovel",
+      "logo": "https://www.google.com/s2/favicons?domain=cofidis.pt&sz=64",
+      "fonteUrl": "https://www.cofidis.pt/produtos/credito-automovel",
+      "comissaoAbertura": "Sem comissão",
+      "tan": 7.95,
+      "taeg": 10.5,
+      "minMontante": 5000,
+      "maxMontante": 50000,
+      "minPrazo": 24,
+      "maxPrazo": 96
+    },
+    {
+      "id": "credito-agricola",
+      "nome": "Crédito Agrícola",
+      "url": "https://www.creditoagricola.pt/para-mim/financiar/credito-automovel",
+      "logo": "https://www.google.com/s2/favicons?domain=creditoagricola.pt&sz=64",
+      "fonteUrl": "https://www.creditoagricola.pt/para-mim/financiar/credito-automovel",
+      "minMontante": 3000,
+      "maxMontante": 75000,
+      "minPrazo": 36,
+      "maxPrazo": 96,
+      "tan": 8.05,
+      "taeg": 9.3
+    },
+    {
+      "id": "younited",
+      "nome": "Younited Credit",
+      "url": "https://pt.younited-credit.com/projetos/credito-automovel",
+      "logo": "https://www.google.com/s2/favicons?domain=younited-credit.com&sz=64",
+      "fonteUrl": "https://pt.younited-credit.com/projetos/credito-automovel",
+      "comissaoAbertura": "Sem comissão",
+      "tan": 8.8,
+      "taeg": 8.8,
+      "maxPrazo": 48
+    },
+    {
+      "id": "abanca",
+      "nome": "Abanca",
+      "url": "https://www.abanca.pt/pt/credito/credito-auto/",
+      "logo": "https://www.google.com/s2/favicons?domain=abanca.pt&sz=64",
+      "fonteUrl": "https://www.abanca.pt/pt/credito/credito-auto/",
+      "tan": 12.9,
+      "taeg": 9.8
+    },
+    {
+      "id": "banco-primus",
+      "nome": "Banco Primus",
+      "url": "https://www.bancoprimus.pt/produtos/financiamento-auto/credito-auto/",
+      "logo": "https://www.google.com/s2/favicons?domain=bancoprimus.pt&sz=64",
+      "fonteUrl": "https://www.bancoprimus.pt/produtos/financiamento-auto/credito-auto/",
+      "comissaoAbertura": "Via concessionário",
+      "tan": 11.4,
+      "taeg": 14.2
+    }
+  ],
+  "eletrico": [
+    {
+      "id": "montepio",
+      "nome": "Montepio",
+      "url": "https://www.montepiocredito.pt/bm/simulador-embed",
+      "logo": "https://www.google.com/s2/favicons?domain=bancomontepio.pt&sz=64",
+      "fonteUrl": "https://www.montepiocredito.pt/bm/simulador-embed",
+      "comissaoAbertura": "Seguro vida incluído",
+      "minMontante": 5000,
+      "maxMontante": 75000,
+      "minPrazo": 48,
+      "maxPrazo": 120,
+      "tan": 5.75,
+      "taeg": 9
+    },
+    {
+      "id": "cgd",
+      "nome": "CGD",
+      "url": "https://www.cgd.pt/Particulares/Credito/Automovel/Pages/Credito-Automovel-Reserva-Propriedade.aspx",
+      "logo": "https://www.google.com/s2/favicons?domain=cgd.pt&sz=64",
+      "fonteUrl": "https://www.cgd.pt/Particulares/Credito/Automovel/Pages/Credito-Automovel-Reserva-Propriedade.aspx",
+      "comissaoAbertura": "Com reserva propriedade",
+      "tan": 0.25,
+      "taeg": 7.9
+    },
+    {
+      "id": "321credito",
+      "nome": "321 Crédito",
+      "url": "https://www.321credito.pt/credito-automovel",
+      "logo": "https://www.google.com/s2/favicons?domain=321credito.pt&sz=64",
+      "fonteUrl": "https://www.321credito.pt/credito-automovel",
+      "comissaoAbertura": "Comissão única",
+      "tan": 6.65,
+      "taeg": 8.5
+    },
+    {
+      "id": "cetelem",
+      "nome": "Cetelem",
+      "url": "https://www.cetelem.pt/creditos/credito-automovel-outros-veiculos",
+      "logo": "https://www.google.com/s2/favicons?domain=cetelem.pt&sz=64",
+      "fonteUrl": "https://www.cetelem.pt/creditos/credito-automovel-outros-veiculos",
+      "comissaoAbertura": "Sem comissão",
+      "tan": 9.6,
+      "taeg": 14.2
+    },
+    {
+      "id": "banco-ctt",
+      "nome": "Banco CTT",
+      "url": "https://www.bancoctt.pt/o-seu-credito/credito-automovel",
+      "logo": "https://www.google.com/s2/favicons?domain=bancoctt.pt&sz=64",
+      "fonteUrl": "https://www.bancoctt.pt/o-seu-credito/credito-automovel",
+      "comissaoAbertura": "Sem comissão",
+      "tan": 7.25,
+      "taeg": 9.1
+    },
+    {
+      "id": "santander",
+      "nome": "Santander",
+      "url": "https://www.santander.pt/credito-automovel",
+      "logo": "https://www.google.com/s2/favicons?domain=santander.pt&sz=64",
+      "fonteUrl": "https://www.santander.pt/credito-automovel",
+      "tan": 6.5,
+      "taeg": 11.5
+    },
+    {
+      "id": "ca-autobank",
+      "nome": "CA Auto Bank",
+      "url": "https://www.ca-autobank.pt/financiamento-veiculos/automoveis/",
+      "logo": "https://www.google.com/s2/favicons?domain=ca-autobank.pt&sz=64",
+      "fonteUrl": "https://www.ca-autobank.pt/financiamento-veiculos/automoveis/",
+      "tan": 7.5,
+      "taeg": 8.7
+    },
+    {
+      "id": "novobanco",
+      "nome": "Novo Banco",
+      "url": "https://www.novobanco.pt/particulares/credito/credito-automovel",
+      "logo": "https://www.google.com/s2/favicons?domain=novobanco.pt&sz=64",
+      "fonteUrl": "https://www.novobanco.pt/particulares/credito/credito-automovel",
+      "tan": 5.65,
+      "taeg": 9.4
+    },
+    {
+      "id": "activobank",
+      "nome": "ActivoBank",
+      "url": "https://www.activobank.pt/credito-automovel",
+      "logo": "https://www.google.com/s2/favicons?domain=activobank.pt&sz=64",
+      "fonteUrl": "https://www.activobank.pt/credito-automovel",
+      "comissaoAbertura": "2.5% (máx. 500€)",
+      "tan": 10.4,
+      "taeg": 10.4
+    },
+    {
+      "id": "cofidis",
+      "nome": "Cofidis",
+      "url": "https://www.cofidis.pt/produtos/credito-automovel",
+      "logo": "https://www.google.com/s2/favicons?domain=cofidis.pt&sz=64",
+      "fonteUrl": "https://www.cofidis.pt/produtos/credito-automovel",
+      "comissaoAbertura": "Sem comissão",
+      "tan": 7.95,
+      "taeg": 10.5,
+      "minMontante": 5000,
+      "maxMontante": 50000,
+      "minPrazo": 24,
+      "maxPrazo": 96
+    },
+    {
+      "id": "younited",
+      "nome": "Younited Credit",
+      "url": "https://pt.younited-credit.com/projetos/credito-automovel",
+      "logo": "https://www.google.com/s2/favicons?domain=younited-credit.com&sz=64",
+      "fonteUrl": "https://pt.younited-credit.com/projetos/credito-automovel",
+      "comissaoAbertura": "Sem comissão",
+      "tan": 8.8,
+      "taeg": 8.8,
+      "maxPrazo": 48
+    },
+    {
+      "id": "banco-primus",
+      "nome": "Banco Primus",
+      "url": "https://www.bancoprimus.pt/produtos/financiamento-auto/credito-auto/",
+      "logo": "https://www.google.com/s2/favicons?domain=bancoprimus.pt&sz=64",
+      "fonteUrl": "https://www.bancoprimus.pt/produtos/financiamento-auto/credito-auto/",
+      "comissaoAbertura": "Via concessionário",
+      "tan": 11.4,
+      "taeg": 14.2
+    }
+  ]
+}

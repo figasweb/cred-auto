@@ -1,5 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk';
-import { bankSources, validationRules, type BankSource } from './sources.js';
+import { chromium, type Browser, type Page } from 'playwright';
+import { bankSources, validationRules, type BankSource, type PageInteraction } from './sources.js';
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const CF_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN || '';
@@ -8,7 +8,7 @@ const CF_KV_NAMESPACE_ID = process.env.CLOUDFLARE_KV_NAMESPACE_ID || '';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
 const DRY_RUN = process.argv.includes('--dry-run');
-const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36';
+const MANUAL_MODE = !ANTHROPIC_API_KEY;
 const LLM_MODEL = 'claude-haiku-4-5-20251001';
 
 type VehicleType = 'novo' | 'usado' | 'eletrico';
@@ -55,20 +55,56 @@ function log(msg: string) {
   console.log(`[${ts}] ${msg}`);
 }
 
-// ─── Fetch HTML ───
+// ─── Browser management ───
 
-async function fetchHtml(url: string): Promise<string> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+let browser: Browser | null = null;
+
+async function getBrowser(): Promise<Browser> {
+  if (!browser) {
+    browser = await chromium.launch({ headless: true });
+  }
+  return browser;
+}
+
+async function getRenderedHtml(url: string, interactions?: PageInteraction[]): Promise<string> {
+  const b = await getBrowser();
+  const page = await b.newPage();
+
   try {
-    const res = await fetch(url, {
-      headers: { 'User-Agent': USER_AGENT },
-      signal: controller.signal,
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.text();
+    await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
+    // Wait a bit for any lazy-loaded content
+    await page.waitForTimeout(2000);
+
+    // Execute page interactions (click tabs, wait for elements, etc.)
+    if (interactions) {
+      for (const action of interactions) {
+        if (action.click) {
+          log(`    clicking: ${action.click}`);
+          await page.click(action.click, { timeout: 5000 }).catch(() => {
+            log(`    click failed: ${action.click}`);
+          });
+        }
+        if (action.waitFor) {
+          await page.waitForSelector(action.waitFor, { timeout: 5000 }).catch(() => {});
+        }
+        if (action.delay) {
+          await page.waitForTimeout(action.delay);
+        } else {
+          await page.waitForTimeout(1000);
+        }
+      }
+    }
+
+    return await page.content();
   } finally {
-    clearTimeout(timeout);
+    await page.close();
+  }
+}
+
+async function closeBrowser() {
+  if (browser) {
+    await browser.close();
+    browser = null;
   }
 }
 
@@ -115,9 +151,61 @@ function validate(data: Record<string, number | null>): string[] {
   return errors;
 }
 
+// ─── Failure reports (manual mode) ───
+
+async function saveFailureReport(
+  bank: BankSource,
+  vehicleType: VehicleType,
+  url: string,
+  html: string,
+  missing: string[],
+) {
+  const fs = await import('fs');
+  const path = await import('path');
+  const dir = path.join(import.meta.dirname, '..', 'failures');
+  fs.mkdirSync(dir, { recursive: true });
+
+  // Save HTML
+  const htmlDir = path.join(dir, 'html');
+  fs.mkdirSync(htmlDir, { recursive: true });
+  const htmlFile = `${bank.id}_${vehicleType}.html`;
+  fs.writeFileSync(path.join(htmlDir, htmlFile), html);
+
+  // Save failure report as .md (ready to paste into LLM)
+  const reportFile = `${bank.id}_${vehicleType}.md`;
+  const snippet = html.substring(0, 5000);
+  const currentPatterns = missing.map(f => {
+    const pat = bank.patterns[f as keyof typeof bank.patterns];
+    return `- ${f}: \`${pat?.source || 'none'}\``;
+  }).join('\n');
+
+  const report = `# Extraction Failure: ${bank.nome} / ${vehicleType}
+
+## URL: ${url}
+## Failed fields: ${missing.join(', ')}
+
+## Current patterns
+${currentPatterns}
+
+## HTML snippet
+\`\`\`html
+${snippet}
+\`\`\`
+
+## Full HTML saved at: failures/html/${htmlFile}
+
+## Task
+Analyze the HTML and provide corrected regex patterns for the failed fields.
+Return JSON: { "fieldName": "new_regex_pattern" }
+`;
+
+  fs.writeFileSync(path.join(dir, reportFile), report);
+  log(`  [MANUAL] Failure report saved: failures/${reportFile}`);
+}
+
 // ─── LLM fallback ───
 
-let anthropic: Anthropic | null = null;
+let anthropic: any = null;
 
 async function extractWithLlm(
   html: string,
@@ -126,7 +214,8 @@ async function extractWithLlm(
   vehicleType: VehicleType,
 ): Promise<Record<string, number | null>> {
   if (!anthropic) {
-    if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set');
+    if (!ANTHROPIC_API_KEY) throw new Error('LLM_API_KEY not set');
+    const { default: Anthropic } = await import('@anthropic-ai/sdk');
     anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
   }
 
@@ -169,7 +258,8 @@ async function fixRegexWithLlm(
   currentPatterns: Record<string, string>,
 ): Promise<Record<string, string>> {
   if (!anthropic) {
-    if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set');
+    if (!ANTHROPIC_API_KEY) throw new Error('LLM_API_KEY not set');
+    const { default: Anthropic } = await import('@anthropic-ai/sdk');
     anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
   }
 
@@ -210,27 +300,52 @@ async function scrapeBank(
     return { bankId: bank.id, bankName: bank.nome, vehicleType, success: false, errors: ['No URL for this type'], usedLlm: false };
   }
 
-  // 1. Fetch
+  // 1. Fetch rendered HTML via Playwright
   let html: string;
   try {
-    html = await fetchHtml(url);
+    const interactions = bank.interactions?.[vehicleType];
+    log(`  Opening ${url} in browser...${interactions ? ` (${interactions.length} interactions)` : ''}`);
+    html = await getRenderedHtml(url, interactions);
+    log(`  Got ${html.length} chars of rendered HTML`);
   } catch (err) {
-    return { bankId: bank.id, bankName: bank.nome, vehicleType, success: false, errors: [`Fetch failed: ${err}`], usedLlm: false };
+    return { bankId: bank.id, bankName: bank.nome, vehicleType, success: false, errors: [`Browser fetch failed: ${err}`], usedLlm: false };
   }
 
-  // 2. Regex
+  // 2. Regex extraction
   const { data: regexData, missing } = extractWithRegex(html, bank.patterns);
-  const tanRequired = regexData.tan !== null && regexData.taeg !== null;
-  const validationErrors = validate(regexData);
 
-  if (missing.filter(f => f === 'tan' || f === 'taeg').length === 0 && validationErrors.length === 0) {
-    // Regex succeeded for critical fields
-    const entry = buildEntry(bank, vehicleType, regexData, url);
+  // Build entry with static fallbacks applied
+  const entry = buildEntry(bank, vehicleType, regexData, url);
+
+  // Check if final entry has TAN+TAEG (from regex or static fields)
+  const hasTanTaeg = entry.tan !== undefined && entry.taeg !== undefined;
+  const entryForValidation: Record<string, number | null> = {
+    tan: entry.tan ?? null,
+    taeg: entry.taeg ?? null,
+    minMontante: entry.minMontante ?? null,
+    maxMontante: entry.maxMontante ?? null,
+    minPrazo: entry.minPrazo ?? null,
+    maxPrazo: entry.maxPrazo ?? null,
+  };
+  const validationErrors = validate(entryForValidation);
+
+  if (hasTanTaeg && validationErrors.length === 0) {
+    if (missing.length > 0) {
+      log(`  Regex missed [${missing.join(',')}] but static fields cover it`);
+    }
     return { bankId: bank.id, bankName: bank.nome, vehicleType, success: true, data: entry, usedLlm: false };
   }
 
-  // 3. LLM fallback
-  log(`  [LLM] Regex failed for ${bank.nome}/${vehicleType}: missing=[${missing.join(',')}] errors=[${validationErrors.join(',')}]`);
+  // 3. LLM fallback (or manual mode)
+  log(`  Incomplete for ${bank.nome}/${vehicleType}: missing=[${missing.join(',')}] errors=[${validationErrors.join(',')}] hasTanTaeg=${hasTanTaeg}`);
+
+  if (MANUAL_MODE) {
+    await saveFailureReport(bank, vehicleType, url, html, missing);
+    return {
+      bankId: bank.id, bankName: bank.nome, vehicleType, success: false,
+      errors: [`Manual mode: missing=[${missing.join(',')}]. Check failures/ for report.`], usedLlm: false,
+    };
+  }
 
   try {
     const llmData = await extractWithLlm(html, bank.nome, url, vehicleType);
@@ -272,19 +387,24 @@ function buildEntry(
   data: Record<string, number | null>,
   url: string,
 ): Partial<BankEntry> {
+  // Static fields as base, then regex data overrides (only non-null values)
+  const scraped: Partial<BankEntry> = {};
+  if (data.tan != null) scraped.tan = data.tan;
+  if (data.taeg != null) scraped.taeg = data.taeg;
+  if (data.minMontante != null) scraped.minMontante = data.minMontante;
+  if (data.maxMontante != null) scraped.maxMontante = data.maxMontante;
+  if (data.minPrazo != null) scraped.minPrazo = data.minPrazo;
+  if (data.maxPrazo != null) scraped.maxPrazo = data.maxPrazo;
+
   return {
     id: bank.id,
     nome: bank.nome,
-    tan: data.tan ?? undefined,
-    taeg: data.taeg ?? undefined,
-    minMontante: data.minMontante ?? undefined,
-    maxMontante: data.maxMontante ?? undefined,
-    minPrazo: data.minPrazo ?? undefined,
-    maxPrazo: data.maxPrazo ?? undefined,
     url,
     logo: logoUrl(bank.domain),
     fonteUrl: url,
+    // Static fields as base, scraped values override
     ...(bank.staticFields as Partial<BankEntry>),
+    ...scraped,
   };
 }
 
@@ -342,25 +462,30 @@ async function notifyTelegram(message: string): Promise<void> {
 // ─── Main ───
 
 async function main() {
-  log('Starting scrape run...');
+  log('Starting scrape run (Playwright)...');
+  if (MANUAL_MODE) log('MANUAL MODE — no LLM API key, failures saved to failures/');
   if (DRY_RUN) log('DRY RUN — will not update KV');
 
   const vehicleTypes: VehicleType[] = ['novo', 'usado', 'eletrico'];
   const allResults: ScrapeResult[] = [];
 
-  for (const bank of bankSources) {
-    for (const vt of vehicleTypes) {
-      if (!bank.urls[vt]) continue;
-      log(`Scraping ${bank.nome} / ${vt}...`);
-      const result = await scrapeBank(bank, vt);
-      allResults.push(result);
+  try {
+    for (const bank of bankSources) {
+      for (const vt of vehicleTypes) {
+        if (!bank.urls[vt]) continue;
+        log(`Scraping ${bank.nome} / ${vt}...`);
+        const result = await scrapeBank(bank, vt);
+        allResults.push(result);
 
-      if (result.success) {
-        log(`  OK ${result.usedLlm ? '(LLM)' : '(regex)'}`);
-      } else {
-        log(`  FAILED: ${result.errors?.join(', ')}`);
+        if (result.success) {
+          log(`  OK ${result.usedLlm ? '(LLM)' : '(regex)'}`);
+        } else {
+          log(`  FAILED: ${result.errors?.join(', ')}`);
+        }
       }
     }
+  } finally {
+    await closeBrowser();
   }
 
   // Build final data
@@ -384,6 +509,11 @@ async function main() {
 
   log(`\nSummary: ${success}/${total} OK, ${failed} failed, ${llmUsed} used LLM`);
   log(`Data: novo=${finalData.novo.length}, usado=${finalData.usado.length}, eletrico=${finalData.eletrico.length}`);
+
+  // Save results to file for inspection
+  const fs = await import('fs');
+  fs.writeFileSync('scrape-results.json', JSON.stringify(finalData, null, 2));
+  log('Results saved to scrape-results.json');
 
   if (!DRY_RUN && success > 0) {
     log('Updating Cloudflare KV...');

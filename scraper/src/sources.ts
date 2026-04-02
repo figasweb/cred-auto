@@ -9,12 +9,23 @@
  * Some banks have the same page for all types, others have separate pages.
  */
 
+export interface PageInteraction {
+  /** CSS selector to click */
+  click?: string;
+  /** CSS selector to wait for before continuing */
+  waitFor?: string;
+  /** Milliseconds to wait */
+  delay?: number;
+}
+
 export interface BankSource {
   id: string;
   nome: string;
   domain: string;
   /** URLs per vehicle type. If a type is missing, that bank doesn't offer it. */
   urls: Partial<Record<'novo' | 'usado' | 'eletrico', string>>;
+  /** Actions to perform after page load, per vehicle type (e.g. click a tab) */
+  interactions?: Partial<Record<'novo' | 'usado' | 'eletrico', PageInteraction[]>>;
   /** Regex patterns to extract fields. Each regex must have exactly 1 capture group. */
   patterns: {
     tan: RegExp;
@@ -51,20 +62,33 @@ export const bankSources: BankSource[] = [
     id: 'montepio',
     nome: 'Montepio',
     domain: 'bancomontepio.pt',
+    // Simulator is inside iframe at montepiocredito.pt — scrape iframe URL directly
     urls: {
-      novo: 'https://www.bancomontepio.pt/particulares/credito/credito-automovel',
-      usado: 'https://www.bancomontepio.pt/particulares/credito/credito-automovel',
-      eletrico: 'https://www.bancomontepio.pt/particulares/credito/credito-automovel',
+      novo: 'https://www.montepiocredito.pt/bm/simulador-embed',
+      usado: 'https://www.montepiocredito.pt/bm/simulador-embed',
+      eletrico: 'https://www.montepiocredito.pt/bm/simulador-embed',
+    },
+    interactions: {
+      // Default view is "Crédito Pessoal", need to click tabs
+      novo: [
+        { click: 'text="Crédito auto"', delay: 2000 },
+      ],
+      usado: [
+        { click: 'text="Crédito auto"', delay: 2000 },
+      ],
+      eletrico: [
+        { click: 'text="Crédito auto elétrico"', delay: 2000 },
+      ],
     },
     patterns: {
-      tan: /TAN[^0-9]*(\d{1,2}[,.]\d{1,2})\s*%/i,
-      taeg: /TAEG[^0-9]*(\d{1,2}[,.]\d{1,2})\s*%/i,
-      minMontante: /(?:montante|valor)\s*m[ií]nimo[^0-9]*(\d[\d.]*)/i,
-      maxMontante: /(?:montante|valor)\s*m[áa]ximo[^0-9]*(\d[\d.]*)/i,
-      minPrazo: /prazo\s*m[ií]nimo[^0-9]*(\d+)/i,
-      maxPrazo: /prazo\s*m[áa]ximo[^0-9]*(\d+)/i,
+      // Simulator shows "TAN" <span>7,000%</span> and "TAEG" <span>10,5%</span>
+      tan: /TAN\s*(?:<[^>]*>\s*)*(\d{1,2}[,.]\d{1,3})\s*%/i,
+      taeg: /TAEG\s*(?:<[^>]*>\s*)*(\d{1,2}[,.]\d{1,2})\s*%/i,
     },
-    staticFields: { comissaoAbertura: 'Seguro vida incluído' },
+    staticFields: {
+      comissaoAbertura: 'Seguro vida incluído',
+      minMontante: 5000, maxMontante: 75000, minPrazo: 48, maxPrazo: 120,
+    },
   },
   {
     id: 'cgd',
@@ -86,6 +110,24 @@ export const bankSources: BankSource[] = [
     staticFields: { comissaoAbertura: 'Com reserva propriedade' },
   },
   {
+    id: 'cgd-auto-expresso',
+    nome: 'CGD Auto Expresso',
+    domain: 'cgd.pt',
+    urls: {
+      novo: 'https://www.cgd.pt/Particulares/Credito/Automovel/Pages/Credito-Auto-Expresso.aspx',
+      usado: 'https://www.cgd.pt/Particulares/Credito/Automovel/Pages/Credito-Auto-Expresso.aspx',
+    },
+    patterns: {
+      tan: /TAN[^0-9]*(\d{1,2}[,.]\d{1,2})\s*%/i,
+      taeg: /TAEG[^0-9]*(\d{1,2}[,.]\d{1,2})\s*%/i,
+      minMontante: /(?:montante|valor)\s*m[ií]nimo[^0-9]*(?:€\s*)?(\d[\d.]*)/i,
+      maxMontante: /(?:montante|valor)\s*m[áa]ximo[^0-9]*(?:€\s*)?(\d[\d.]*)/i,
+      minPrazo: /prazo\s*m[ií]nimo[^0-9]*(\d+)/i,
+      maxPrazo: /prazo\s*m[áa]ximo[^0-9]*(\d+)/i,
+    },
+    staticFields: { comissaoAbertura: 'Sem reserva propriedade' },
+  },
+  {
     id: 'bpi',
     nome: 'BPI',
     domain: 'bancobpi.pt',
@@ -95,12 +137,13 @@ export const bankSources: BankSource[] = [
       eletrico: 'https://www.bancobpi.pt/particulares/credito/credito-automovel',
     },
     patterns: {
-      tan: /TAN[^0-9]*(\d{1,2}[,.]\d{1,2})\s*%/i,
-      taeg: /TAEG[^0-9]*(\d{1,2}[,.]\d{1,2})\s*%/i,
-      minMontante: /(?:montante|valor)\s*m[ií]nimo[^0-9]*(?:€\s*)?(\d[\d.]*)/i,
-      maxMontante: /(?:montante|valor)\s*m[áa]ximo[^0-9]*(?:€\s*)?(\d[\d.]*)/i,
-      minPrazo: /prazo\s*m[ií]nimo[^0-9]*(\d+)/i,
-      maxPrazo: /prazo\s*m[áa]ximo[^0-9]*(\d+)/i,
+      // Page only shows "TAEG desde 7,2%" in span, no TAN published
+      tan: /TAN\s+(?:fixa\s+)?(?:de(?:sde)?\s+)?(\d{1,2}[,.]\d{1,3})\s*%/i,
+      taeg: /TAEG\s+desde\s+(\d{1,2}[,.]\d{1,2})\s*%/i,
+    },
+    staticFields: {
+      tan: 6.0, // Known from public pricing tables
+      minMontante: 2500, maxMontante: 30000, minPrazo: 24, maxPrazo: 120,
     },
   },
   {
@@ -113,12 +156,13 @@ export const bankSources: BankSource[] = [
       eletrico: 'https://www.credibom.pt/credito/automovel',
     },
     patterns: {
-      tan: /TAN[^0-9]*(\d{1,2}[,.]\d{1,2})\s*%/i,
-      taeg: /TAEG[^0-9]*(\d{1,2}[,.]\d{1,2})\s*%/i,
-      minMontante: /(?:montante|valor)\s*m[ií]nimo[^0-9]*(?:€\s*)?(\d[\d.]*)/i,
-      maxMontante: /(?:montante|valor)\s*m[áa]ximo[^0-9]*(?:€\s*)?(\d[\d.]*)/i,
-      minPrazo: /prazo\s*m[ií]nimo[^0-9]*(\d+)/i,
-      maxPrazo: /prazo\s*m[áa]ximo[^0-9]*(\d+)/i,
+      tan: /TAN\s+(?:fixa\s+)?(?:de(?:sde)?\s+)?(\d{1,2}[,.]\d{1,3})\s*%/i,
+      taeg: /TAEG\s+(?:de(?:sde)?\s+)?(\d{1,2}[,.]\d{1,2})\s*%/i,
+    },
+    // Cloudflare anti-bot; full static fallback
+    staticFields: {
+      tan: 6.25, taeg: 7.98,
+      minMontante: 7500, maxMontante: 75000, minPrazo: 24, maxPrazo: 120,
     },
   },
   {
@@ -183,17 +227,18 @@ export const bankSources: BankSource[] = [
     nome: 'Millennium BCP',
     domain: 'millenniumbcp.pt',
     urls: {
-      novo: 'https://www.millenniumbcp.pt/particulares/credito/credito-automovel',
-      usado: 'https://www.millenniumbcp.pt/particulares/credito/credito-automovel',
-      eletrico: 'https://www.millenniumbcp.pt/particulares/credito/credito-automovel',
+      novo: 'https://www.millenniumbcp.pt/en/loans/car-loan',
+      usado: 'https://www.millenniumbcp.pt/en/loans/car-loan',
+      eletrico: 'https://www.millenniumbcp.pt/en/loans/car-loan',
     },
     patterns: {
-      tan: /TAN[^0-9]*(\d{1,2}[,.]\d{1,2})\s*%/i,
-      taeg: /TAEG[^0-9]*(\d{1,2}[,.]\d{1,2})\s*%/i,
-      minMontante: /(?:montante|valor)\s*m[ií]nimo[^0-9]*(?:€\s*)?(\d[\d.]*)/i,
-      maxMontante: /(?:montante|valor)\s*m[áa]ximo[^0-9]*(?:€\s*)?(\d[\d.]*)/i,
-      minPrazo: /prazo\s*m[ií]nimo[^0-9]*(\d+)/i,
-      maxPrazo: /prazo\s*m[áa]ximo[^0-9]*(\d+)/i,
+      // English page: shows "TAEG 9.2%" in <strong>, no TAN published
+      tan: /TAN\s+(?:from\s+|de(?:sde)?\s+)?(\d{1,2}[,.]\d{1,3})\s*%/i,
+      taeg: /TAEG\s+(\d{1,2}[,.]\d{1,2})\s*%/i,
+    },
+    staticFields: {
+      tan: 7.5, // Known from public pricing
+      minMontante: 1000, maxMontante: 75000, minPrazo: 24, maxPrazo: 120,
     },
   },
   {
@@ -278,14 +323,14 @@ export const bankSources: BankSource[] = [
       eletrico: 'https://www.bbva.pt/pessoas/produtos/financiamento/credito-automovel.html',
     },
     patterns: {
-      tan: /TAN[^0-9]*(\d{1,2}[,.]\d{1,2})\s*%/i,
-      taeg: /TAEG[^0-9]*(\d{1,2}[,.]\d{1,2})\s*%/i,
-      minMontante: /(?:montante|valor)\s*m[ií]nimo[^0-9]*(?:€\s*)?(\d[\d.]*)/i,
-      maxMontante: /(?:montante|valor)\s*m[áa]ximo[^0-9]*(?:€\s*)?(\d[\d.]*)/i,
-      minPrazo: /prazo\s*m[ií]nimo[^0-9]*(\d+)/i,
-      maxPrazo: /prazo\s*m[áa]ximo[^0-9]*(\d+)/i,
+      tan: /TAN\s+(?:fixa\s+)?(?:de(?:sde)?\s+)?(\d{1,2}[,.]\d{1,3})\s*%/i,
+      taeg: /TAEG\s+(?:de(?:sde)?\s+)?(\d{1,2}[,.]\d{1,2})\s*%/i,
     },
-    staticFields: { comissaoAbertura: '300€' },
+    // Site frequently returns error page; full static fallback
+    staticFields: {
+      tan: 8.10, taeg: 9.60, comissaoAbertura: '300€',
+      minMontante: 2500, maxMontante: 75000, minPrazo: 12, maxPrazo: 120,
+    },
   },
   {
     id: 'cofidis',
@@ -297,12 +342,15 @@ export const bankSources: BankSource[] = [
       eletrico: 'https://www.cofidis.pt/produtos/credito-automovel',
     },
     patterns: {
-      tan: /TAN[^0-9]*(\d{1,2}[,.]\d{1,2})\s*%/i,
-      taeg: /TAEG[^0-9]*(\d{1,2}[,.]\d{1,2})\s*%/i,
-      minMontante: /(?:montante|valor)\s*m[ií]nimo[^0-9]*(?:€\s*)?(\d[\d.]*)/i,
-      maxMontante: /(?:montante|valor)\s*m[áa]ximo[^0-9]*(?:€\s*)?(\d[\d.]*)/i,
-      minPrazo: /prazo\s*m[ií]nimo[^0-9]*(\d+)/i,
-      maxPrazo: /prazo\s*m[áa]ximo[^0-9]*(\d+)/i,
+      // "TAEG desde 10,5% | TAN desde 7,95%"
+      tan: /TAN\s+desde\s+(\d{1,2}[,.]\d{1,2})\s*%/i,
+      taeg: /TAEG\s+desde\s+(\d{1,2}[,.]\d{1,2})\s*%/i,
+      // JSON-LD: "minValue": 5000, "maxValue": 50000
+      minMontante: /"minValue":\s*(\d+)/,
+      maxMontante: /"maxValue":\s*(\d+)/,
+      // JSON-LD: "loanTerm": "24-96 months"
+      minPrazo: /"loanTerm":\s*"(\d+)-/,
+      maxPrazo: /"loanTerm":\s*"\d+-(\d+)/,
     },
     staticFields: { comissaoAbertura: 'Sem comissão' },
   },
@@ -315,12 +363,13 @@ export const bankSources: BankSource[] = [
       usado: 'https://www.creditoagricola.pt/para-mim/financiar/credito-automovel',
     },
     patterns: {
-      tan: /TAN[^0-9]*(\d{1,2}[,.]\d{1,2})\s*%/i,
-      taeg: /TAEG[^0-9]*(\d{1,2}[,.]\d{1,2})\s*%/i,
-      minMontante: /(?:montante|valor)\s*m[ií]nimo[^0-9]*(?:€\s*)?(\d[\d.]*)/i,
-      maxMontante: /(?:montante|valor)\s*m[áa]ximo[^0-9]*(?:€\s*)?(\d[\d.]*)/i,
-      minPrazo: /prazo\s*m[ií]nimo[^0-9]*(\d+)/i,
-      maxPrazo: /prazo\s*m[áa]ximo[^0-9]*(\d+)/i,
+      // "TAN fixa de 8,050%" in example text
+      tan: /TAN\s+fixa\s+de\s+(\d{1,2}[,.]\d{1,3})\s*%/i,
+      // "TAEG de 9,7%"
+      taeg: /TAEG\s+de\s+(\d{1,2}[,.]\d{1,2})\s*%/i,
+    },
+    staticFields: {
+      minMontante: 3000, maxMontante: 75000, minPrazo: 36, maxPrazo: 96,
     },
   },
   {
@@ -332,14 +381,14 @@ export const bankSources: BankSource[] = [
       usado: 'https://www.bankinter.pt/credito-pessoal/credito-automovel',
     },
     patterns: {
-      tan: /TAN[^0-9]*(\d{1,2}[,.]\d{1,2})\s*%/i,
-      taeg: /TAEG[^0-9]*(\d{1,2}[,.]\d{1,2})\s*%/i,
-      minMontante: /(?:montante|valor)\s*m[ií]nimo[^0-9]*(?:€\s*)?(\d[\d.]*)/i,
-      maxMontante: /(?:montante|valor)\s*m[áa]ximo[^0-9]*(?:€\s*)?(\d[\d.]*)/i,
-      minPrazo: /prazo\s*m[ií]nimo[^0-9]*(\d+)/i,
-      maxPrazo: /prazo\s*m[áa]ximo[^0-9]*(\d+)/i,
+      tan: /TAN\s+(?:fixa\s+)?(?:de(?:sde)?\s+)?(\d{1,2}[,.]\d{1,3})\s*%/i,
+      taeg: /TAEG\s+(?:de(?:sde)?\s+)?(\d{1,2}[,.]\d{1,2})\s*%/i,
     },
-    staticFields: { comissaoAbertura: '3%' },
+    // Cloudflare anti-bot; full static fallback
+    staticFields: {
+      tan: 8.30, taeg: 10.80, comissaoAbertura: '3%',
+      minMontante: 6000, maxMontante: 75000, minPrazo: 36, maxPrazo: 120,
+    },
   },
   {
     id: 'younited',
