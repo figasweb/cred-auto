@@ -1,10 +1,12 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { BarChart3, AlertCircle } from 'lucide-react';
 import type { VehicleType, Instituicao } from '../data/instituicoes';
 import { calcularPrestacao, calcularMTIC, calcularTotalJuros, formatarEuro } from '../utils/calculo';
 import ResultCard from './ResultCard';
 import ExcludedList from './ExcludedList';
+import { Analytics } from '../lib/analytics';
+import AdPlaceholder from './AdPlaceholder';
 
 interface Props {
   tipo: VehicleType;
@@ -55,6 +57,10 @@ export default function ResultsList({ tipo, montante, prazo, instituicoes }: Pro
     return { resultados: inc, excluidos: exc };
   }, [tipo, montante, prazo, instituicoes]);
 
+  useEffect(() => {
+    Analytics.simulationComplete({ tipo, montante, prazo, num_resultados: resultados.length });
+  }, [tipo, montante, prazo, resultados.length]);
+
   const tipoLabel = { novo: 'Novo', usado: 'Usado', eletrico: 'Elétrico' };
 
   if (resultados.length === 0) {
@@ -71,7 +77,7 @@ export default function ResultsList({ tipo, montante, prazo, instituicoes }: Pro
         </motion.div>
 
         {excluidos.length > 0 && (
-          <ExcludedList excluidos={excluidos} montante={montante} prazo={prazo} />
+          <ExcludedList excluidos={excluidos} montante={montante} prazo={prazo} tipo={tipo} />
         )}
       </div>
     );
@@ -111,30 +117,32 @@ export default function ResultsList({ tipo, montante, prazo, instituicoes }: Pro
       {/* Cards */}
       <div className="flex flex-col gap-4">
         {resultados.map((r, i) => (
-          <ResultCard
-            key={r.id || r.nome}
-            rank={i + 1}
-            id={r.id || r.nome.toLowerCase().replace(/\s+/g, '-')}
-            nome={r.nome}
-            prestacao={r.prestacao}
-            tan={r.tan}
-            taeg={r.taeg}
-            mtic={r.mtic}
-            totalJuros={r.totalJuros}
-            montante={montante}
-            prazo={prazo}
-            url={r.url}
-            logo={r.logo}
-            comissaoAbertura={r.comissaoAbertura}
-            vehicleType={tipo}
-            isBest={i === 0}
-          />
+          <div key={r.id || r.nome}>
+            <ResultCard
+              rank={i + 1}
+              id={r.id || r.nome.toLowerCase().replace(/\s+/g, '-')}
+              nome={r.nome}
+              prestacao={r.prestacao}
+              tan={r.tan}
+              taeg={r.taeg}
+              mtic={r.mtic}
+              totalJuros={r.totalJuros}
+              montante={montante}
+              prazo={prazo}
+              url={r.url}
+              logo={r.logo}
+              comissaoAbertura={r.comissaoAbertura}
+              vehicleType={tipo}
+              isBest={i === 0}
+            />
+            {i === 2 && <AdPlaceholder label="Anuncio — Entre resultados" />}
+          </div>
         ))}
       </div>
 
       {/* Excluded */}
       {excluidos.length > 0 && (
-        <ExcludedList excluidos={excluidos} montante={montante} prazo={prazo} />
+        <ExcludedList excluidos={excluidos} montante={montante} prazo={prazo} tipo={tipo} />
       )}
 
       {/* Disclaimer */}
@@ -148,6 +156,8 @@ export default function ResultsList({ tipo, montante, prazo, instituicoes }: Pro
         Valores indicativos — a prestação real depende da análise de crédito, seguros e comissões.
         Consulte sempre o simulador oficial para valores vinculativos.
       </motion.p>
+
+      <AdPlaceholder label="Anuncio — Fim da pagina" />
     </section>
   );
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { VehicleType, Instituicao } from '../data/instituicoes';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787';
+const API_URL = import.meta.env.VITE_API_URL || '';
 const CACHE_KEY = 'cred-auto:instituicoes';
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 

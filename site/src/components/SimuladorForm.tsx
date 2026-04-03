@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Car, Zap, Clock } from 'lucide-react';
 import type { VehicleType } from '../data/instituicoes';
 import { formatarEuro } from '../utils/calculo';
+import { Analytics } from '../lib/analytics';
 
 interface Props {
   tipo: VehicleType;
@@ -38,7 +39,7 @@ export default function SimuladorForm({ tipo, montante, prazo, onTipoChange, onM
             {tipos.map((t) => (
               <button
                 key={t.key}
-                onClick={() => onTipoChange(t.key)}
+                onClick={() => { Analytics.selectVehicleType(t.key); onTipoChange(t.key); }}
                 className={`relative flex flex-col items-center gap-1.5 py-4 px-3 rounded-xl border-2 transition-all duration-300 cursor-pointer
                   ${tipo === t.key
                     ? 'border-primary bg-primary/10 text-white shadow-lg shadow-primary/20'
@@ -73,7 +74,7 @@ export default function SimuladorForm({ tipo, montante, prazo, onTipoChange, onM
             max={75000}
             step={500}
             value={montante}
-            onChange={(e) => onMontanteChange(Number(e.target.value))}
+            onChange={(e) => { const v = Number(e.target.value); Analytics.changeAmount(v); onMontanteChange(v); }}
             className="w-full mb-2"
           />
           <div className="flex justify-between text-xs text-slate-600">
@@ -91,7 +92,7 @@ export default function SimuladorForm({ tipo, montante, prazo, onTipoChange, onM
             {prazosDisponiveis.map((p) => (
               <button
                 key={p}
-                onClick={() => onPrazoChange(p)}
+                onClick={() => { Analytics.changeTerm(p); onPrazoChange(p); }}
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer
                   ${prazo === p
                     ? 'bg-primary text-white shadow-lg shadow-primary/30'

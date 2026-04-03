@@ -27,7 +27,7 @@ export function EvidenceProvider({ children }: { children: React.ReactNode }) {
     setVisible(true);
   }, []);
 
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8787';
+  const apiUrl = import.meta.env.VITE_API_URL || '';
   // New naming: {bankId}_{field}_{vehicleType}.png
   const imgSrc = `${apiUrl}/api/evidence/${bankId}_${field.toLowerCase()}_${vehicleType}.png`;
 

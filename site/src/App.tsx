@@ -7,6 +7,7 @@ import Hero from './components/Hero';
 import SimuladorForm from './components/SimuladorForm';
 import ResultsList from './components/ResultsList';
 import { EvidenceProvider } from './components/EvidenceModal';
+import AdPlaceholder from './components/AdPlaceholder';
 
 function App() {
   const [tipo, setTipo] = useState<VehicleType>('novo');
@@ -26,6 +27,8 @@ function App() {
         onMontanteChange={setMontante}
         onPrazoChange={setPrazo}
       />
+
+      <AdPlaceholder label="Anuncio — Topo dos resultados" />
 
       {loading && (
         <motion.div

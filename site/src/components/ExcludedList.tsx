@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Ban, ChevronDown, ChevronUp, ExternalLink, Info } from 'lucide-react';
 import { formatarEuro } from '../utils/calculo';
+import { Analytics } from '../lib/analytics';
 
 interface ExcludedItem {
   nome: string;
@@ -20,13 +21,13 @@ interface Props {
   prazo: number;
 }
 
-export default function ExcludedList({ excluidos }: Props) {
+export default function ExcludedList({ excluidos, montante, prazo, tipo }: Props & { tipo?: string }) {
   const [aberto, setAberto] = useState(false);
 
   return (
     <div className="mt-8">
       <button
-        onClick={() => setAberto(!aberto)}
+        onClick={() => { if (!aberto) Analytics.expandExcluded(excluidos.length); setAberto(!aberto); }}
         className="flex items-center gap-3 w-full text-left group cursor-pointer"
       >
         <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
@@ -92,6 +93,7 @@ export default function ExcludedList({ excluidos }: Props) {
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => Analytics.clickBancoExcluded({ banco: item.nome, tipo: tipo || '', montante, prazo })}
                     className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-500 hover:text-primary-light hover:bg-white/5 transition-all no-underline"
                   >
                     Ver site

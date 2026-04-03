@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { ExternalLink, Trophy, TrendingDown, TrendingUp } from 'lucide-react';
 import { formatarEuro, formatarPercentagem } from '../utils/calculo';
 import { useEvidence } from './EvidenceModal';
+import { Analytics } from '../lib/analytics';
 
 const IS_DEV = import.meta.env.DEV;
 
@@ -24,7 +25,7 @@ interface Props {
 }
 
 export default function ResultCard({
-  rank, id, nome, prestacao, tan, taeg, mtic, totalJuros, montante, url, logo, comissaoAbertura, vehicleType, isBest,
+  rank, id, nome, prestacao, tan, taeg, mtic, totalJuros, montante, prazo, url, logo, comissaoAbertura, vehicleType, isBest,
 }: Props) {
   const evidence = useEvidence();
 
@@ -108,6 +109,7 @@ export default function ResultCard({
             href={url}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => Analytics.clickBanco({ banco: nome, rank, tipo: vehicleType, montante, prazo })}
             className={`inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-300 no-underline
               ${isBest
                 ? 'bg-success text-surface hover:bg-success/90 shadow-lg shadow-success/20'
